@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>91Club Lottery - Win Big!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin:0; font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); color: #fff; }
+    .container { max-width: 480px; margin: auto; padding: 20px; text-align: center; }
+    h1 { font-size: 2.2em; margin-top: 30px; }
+    p { color: #cfd2ff; margin: 12px 0 24px; }
+    .card { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; box-shadow: 0 0 15px rgba(0,0,0,.5); }
+    button { background: linear-gradient(90deg,#ff512f,#dd2476); border: none; color: #fff; padding: 14px 22px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    button:hover { opacity: 0.9; }
+    .status { margin-top: 15px; font-size: 14px; color: #ffd; }
+    .ticket { font-size: 20px; font-weight: bold; margin-top: 20px; color: #00ffae; }
+    footer { margin-top: 40px; font-size: 12px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎉 91Club Lottery 🎉</h1>
+    <div class="card">
+      <p>Enter today’s lucky draw and get your ticket instantly. We collect basic device info and (optionally) your location to ensure fair play.</p>
+      <button onclick="enterLottery()">Enter Now</button>
+      <div class="status" id="status"></div>
+      <div class="ticket" id="ticket"></div>
+    </div>
+    <footer>© 2025 91Club Lottery • Fair & Transparent</footer>
+  </div>
+
+  <script>
+    async function getDeviceInfo() {
+      return {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screen: { width: screen.width, height: screen.height },
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+    }
+
+    function generateTicket() {
+      return "TKT-" + Math.random().toString(36).substr(2, 8).toUpperCase();
+    }
+
+    async function enterLottery() {
+      document.getElementById('status').textContent = "Collecting info...";
+      const deviceInfo = await getDeviceInfo();
+      const ticket = generateTicket();
+
+      if (confirm("Do you want to share your location to verify your entry?")) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          deviceInfo.location = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+          await sendToServer({ deviceInfo, ticket });
+        }, async (err) => {
+          deviceInfo.location = { error: err.message };
+          await sendToServer({ deviceInfo, ticket });
+        });
+      } else {
+        await sendToServer({ deviceInfo, ticket });
+      }
+    }
+
+    async function sendToServer(payload) {
+      try {
+        const res = await fetch("/api/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        document.getElementById('status').textContent = data.message;
+        if (data.ticket) {
+          document.getElementById('ticket').textContent = "🎟 Your Ticket: " + data.ticket;
+        }
+      } catch (err) {
+        document.getElementById('status').textContent = "Error sending entry.";
+      }
+    }
+  </script>
+</body>
+</html>
